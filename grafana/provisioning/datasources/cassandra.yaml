@@ -4,6 +4,7 @@ datasources:
   - name: Cassandra
     type: hadesarchitect-cassandra-datasource
     access: proxy
+    uid: cassandra              # <--- ADD THIS LINE
     url: cassandra:9042
     jsonData:
       keyspace: taxi_streaming

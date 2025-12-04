@@ -69,6 +69,22 @@ zone_schema = StructType([
 
 
 # ---------- Spark Session ----------
+# spark = (
+#     SparkSession.builder
+#     .appName("NYC Taxi Trip Streaming Pipeline")
+#     .config("spark.cassandra.connection.host", CASSANDRA_HOST)
+#     .config("spark.cassandra.connection.port", "9042")
+#     .config("spark.sql.streaming.checkpointLocation", CHECKPOINT_ROOT)
+#     .config("spark.scheduler.mode", "FAIR") 
+#     .config("spark.sql.shuffle.partitions", "4")
+#     .master("local[*]") 
+#     .getOrCreate()
+# )
+# spark.sparkContext.setLogLevel("WARN")
+
+
+# THIS VERSION FOR LOW RAM ENVIRONMENTS
+# ---------- Spark Session ----------
 spark = (
     SparkSession.builder
     .appName("NYC Taxi Trip Streaming Pipeline")
@@ -76,11 +92,22 @@ spark = (
     .config("spark.cassandra.connection.port", "9042")
     .config("spark.sql.streaming.checkpointLocation", CHECKPOINT_ROOT)
     .config("spark.scheduler.mode", "FAIR") 
-    .config("spark.sql.shuffle.partitions", "4") 
-    .master("local[*]")
+    .config("spark.sql.shuffle.partitions", "1")
+    
+    # Absolute minimum for low RAM
+    .config("spark.driver.memory", "512m")  # Reduced from 1g
+    .config("spark.executor.memory", "512m")  # Reduced from 1g
+    .config("spark.memory.fraction", "0.6")  # Use less memory for caching
+    .config("spark.memory.storageFraction", "0.3")  # Reduce storage memory
+    .config("spark.sql.streaming.minBatchesToRetain", "1")
+    .config("spark.streaming.backpressure.enabled", "true")
+    .config("spark.sql.streaming.maxFilesPerTrigger", "1")
+    
+    .master("local[1]")
     .getOrCreate()
 )
-spark.sparkContext.setLogLevel("WARN")
+spark.sparkContext.setLogLevel("ERROR")  # Reduce logging overhead
+
 
 
 # ---------- Read from Kafka ----------
@@ -196,10 +223,27 @@ else:
 
 # ---------- Aggregations ----------
 
+# --- Hourly aggregation ---
+hourly_agg = final_stream \
+    .groupBy(
+        window(col("event_time"), "1 hour")
+    ) \
+    .agg(
+        count("*").alias("total_trips"),
+        spark_sum("total_amount").alias("total_revenue"),
+        avg("passenger_count").alias("avg_passengers")
+    ) \
+    .select(
+        col("window.start").alias("window_start"),
+        col("window.end").alias("window_end"),
+        "total_trips", "total_revenue", "avg_passengers"
+    )
+
 # --- Query A: Demand & Revenue Dynamics ---
 demand_agg = final_stream \
     .groupBy(
         window(col("event_time"), "1 hour"),
+        # window(col("event_time"), "24 hours"),
         col("pickup_zone"),
         col("peak_category")
     ) \
@@ -221,6 +265,7 @@ demand_agg = final_stream \
 ops_agg = final_stream \
     .groupBy(
         window(col("event_time"), "30 minutes"),
+        # window(col("event_time"), "12 hour"),
         col("pickup_zone")
     ) \
     .agg(
@@ -238,6 +283,7 @@ ops_agg = final_stream \
 rider_agg = final_stream \
     .groupBy(
         window(col("event_time"), "1 hour"),
+        # window(col("event_time"), "24 hours"),
         col("payment_type"),
         col("distance_category")
     ) \
@@ -256,16 +302,41 @@ rider_agg = final_stream \
 
 
 # ---------- Sinks ----------
+
 def write_to_cassandra(batch_df, batch_id, table_name):
     if batch_df.rdd.isEmpty():
+        logger.info(f"Batch {batch_id} is empty, skipping {table_name}")
         return
     
-    logger.info(f"Writing batch {batch_id} to {table_name}")
-    (batch_df.write
-        .format("org.apache.spark.sql.cassandra")
-        .mode("append")
-        .options(table=table_name, keyspace=CASSANDRA_KEYSPACE)
-        .save())
+    logger.info(f"=== Writing batch {batch_id} to {table_name} ===")
+    
+    # Print schema and data types
+    logger.info(f"Schema for {table_name}:")
+    batch_df.printSchema()
+    
+    # Print sample data (first 5 rows)
+    logger.info(f"Sample data for {table_name}:")
+    batch_df.show(5, truncate=False)
+    
+    # Print detailed type info
+    logger.info(f"Column types for {table_name}:")
+    for field in batch_df.schema.fields:
+        logger.info(f"  {field.name}: {field.dataType} (nullable={field.nullable})")
+    
+    # Print row count
+    row_count = batch_df.count()
+    logger.info(f"Writing {row_count} rows to {table_name}")
+    
+    try:
+        (batch_df.write
+            .format("org.apache.spark.sql.cassandra")
+            .mode("append")
+            .options(table=table_name, keyspace=CASSANDRA_KEYSPACE)
+            .save())
+        logger.info(f"Successfully wrote batch {batch_id} to {table_name}")
+    except Exception as e:
+        logger.error(f"Failed to write batch {batch_id} to {table_name}: {e}")
+        raise
 
 print("Starting Demand Stream...")
 query_demand = (
@@ -273,6 +344,15 @@ query_demand = (
     .outputMode("update")
     .foreachBatch(lambda df, id: write_to_cassandra(df, id, "demand_dynamics"))
     .option("checkpointLocation", CHECKPOINT_PATH_DICT['demand'])
+    .start()
+)
+
+print("Starting Hourly Stream...")
+query_hourly = (
+    hourly_agg.writeStream
+    .outputMode("update")
+    .foreachBatch(lambda df, id: write_to_cassandra(df, id, "trip_aggregations_hourly"))
+    .option("checkpointLocation", os.path.join(CHECKPOINT_ROOT, "hourly"))
     .start()
 )
 

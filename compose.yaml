@@ -42,6 +42,18 @@ services:
     ports:
       - "9042:9042"
     environment:
+      # CRITICAL: Binds the native transport to all network interfaces
+      - CASSANDRA_RPC_ADDRESS=0.0.0.0
+      # CRITICAL: Tells the driver to contact this node via its docker service name
+      - CASSANDRA_BROADCAST_RPC_ADDRESS=cassandra
+      # Optional: Ensures the node identifies itself correctly
+      - CASSANDRA_CLUSTER_NAME=MyCluster
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      # Optional: explicitly enables the transport (default is true, but good to be explicit)
+      - CASSANDRA_START_NATIVE_TRANSPORT=true
+      # Adjust heap sizes for development environment
+      - MAX_HEAP_SIZE=512M  # Reduce to 512MB
+      - HEAP_NEWSIZE=128M   # Reduce to 128MB
       - CASSANDRA_CLUSTER_NAME=TaxiCluster
       - CASSANDRA_DC=datacenter1
       - CASSANDRA_RACK=rack1

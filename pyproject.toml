@@ -8,5 +8,6 @@ dependencies = [
     "cassandra-driver>=3.29.3",
     "confluent-kafka[avro]>=2.12.0",
     "polars>=1.34.0",
+    "pyarrow>=22.0.0",
     "pyspark==3.5.7",
 ]

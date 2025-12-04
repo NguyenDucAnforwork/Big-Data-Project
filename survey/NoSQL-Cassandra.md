@@ -58,6 +58,15 @@ There are 3 main consistency levels in Cassandra:
 - **ALL**: means all replica nodes must respond to a read or write request.
 You can define the consistency level of your read and write queries. This choice is a trade-off between consistency, availability, and latency.
 
+CAP theorem: 
+- Consistency: Every read receives the most recent write or an error.
+- Availability: Every request receives a (non-error) response, without guarantee that it contains the most recent write.
+- Partition Tolerance: The system continues to operate despite an arbitrary number of messages
+When a network partition occurs, a distributed system must choose between consistency and availability. Cassandra is designed to be AP (Available and Partition-tolerant) by default, but you can configure it to be CP (Consistent and Partition-tolerant) by using higher consistency levels like QUORUM or ALL.
+
+To ensure strong consistency, you need to satisfy the condition:
+[read-consistency-level] + [write-consistency-level] > [replication-factor]
+
 ### 1.5. Other Concepts
 - **Optimize storage for reading or writing**: Cassandra is optimized for high write throughput. It uses a log-structured storage engine that writes data sequentially to disk, which is faster than random writes. Reads can be slower, especially if the data is not in memory.
 - **Compaction**: For every write operation, data is written to disk to provide durability. This means that if something goes wrong, like a power outage, data is not lost. SSTables are immutable data files Cassandra uses to store data on disk. Over time, multiple SSTables can accumulate, which can lead to inefficient reads. Compaction is the process of merging these SSTables into fewer, larger ones, which helps improve read performance and reclaim disk space.

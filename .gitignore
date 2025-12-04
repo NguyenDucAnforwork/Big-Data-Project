@@ -9,6 +9,7 @@ venv/
 ENV/
 env/
 .python-version
+test/
 
 # IDE
 .vscode/
