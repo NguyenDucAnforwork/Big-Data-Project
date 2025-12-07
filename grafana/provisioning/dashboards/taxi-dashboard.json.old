@@ -89,7 +89,7 @@
         {
           "queryType": "query",
           "rawQuery": true,
-          "target": "SELECT window_start, total_trips FROM taxi_analytics LIMIT 100 ALLOW FILTERING",
+          "target": "SELECT window_start, SUM(total_trips) as trips FROM taxi_analytics GROUP BY window_start ALLOW FILTERING",
           "refId": "A"
         }
       ],
@@ -167,7 +167,7 @@
         {
           "queryType": "query",
           "rawQuery": true,
-          "target": "SELECT window_start, total_revenue FROM taxi_analytics LIMIT 100 ALLOW FILTERING",
+          "target": "SELECT window_start, SUM(total_revenue) as revenue FROM taxi_analytics GROUP BY window_start ALLOW FILTERING",
           "refId": "A"
         }
       ],

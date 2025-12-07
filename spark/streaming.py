@@ -4,7 +4,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import (
     col, from_json, window, avg, sum as spark_sum, count,
     current_timestamp, when, lit, hour, dayofweek, 
-    unix_timestamp, broadcast, round as spark_round, year, month
+    unix_timestamp, broadcast, round as spark_round
 )
 from pyspark.sql.types import (
     StructType, StructField, IntegerType, LongType,
@@ -23,16 +23,11 @@ KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "taxi-trips")
 CASSANDRA_HOST = os.getenv("CASSANDRA_HOST", "localhost")
 CASSANDRA_KEYSPACE = os.getenv("CASSANDRA_KEYSPACE", "taxi_streaming")
 
-# Checkpoint paths - CRITICAL: Must be unique per query
+# Single checkpoint path for single query
 CHECKPOINT_ROOT = os.getenv("CHECKPOINT_ROOT", "/tmp/spark_checkpoints")
-# Ensure the dictionary keys match the dictionary access later
-CHECKPOINT_PATH_DICT = {
-    "demand": os.path.join(CHECKPOINT_ROOT, "demand"),
-    "ops": os.path.join(CHECKPOINT_ROOT, "ops"),
-    "rider": os.path.join(CHECKPOINT_ROOT, "rider")
-}
+CHECKPOINT_PATH = os.path.join(CHECKPOINT_ROOT, "taxi_analytics")
 
-# 7ax1 z0n3 100kup from: https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv
+# Zone lookup CSV
 ZONE_LOOKUP_PATH = os.getenv("ZONE_LOOKUP_PATH", "taxi_zone_lookup.csv")
 
 
@@ -71,12 +66,20 @@ zone_schema = StructType([
 # ---------- Spark Session ----------
 spark = (
     SparkSession.builder
-    .appName("NYC Taxi Trip Streaming Pipeline")
+    .appName("NYC Taxi Analytics Stream")
     .config("spark.cassandra.connection.host", CASSANDRA_HOST)
     .config("spark.cassandra.connection.port", "9042")
-    .config("spark.sql.streaming.checkpointLocation", CHECKPOINT_ROOT)
-    .config("spark.scheduler.mode", "FAIR") 
-    .config("spark.sql.shuffle.partitions", "2") 
+    .config("spark.sql.streaming.checkpointLocation", CHECKPOINT_PATH)
+    .config("spark.sql.shuffle.partitions", "2")
+    # Memory optimizations
+    .config("spark.driver.memory", "1g")
+    .config("spark.executor.memory", "1g")
+    .config("spark.memory.fraction", "0.8")
+    .config("spark.memory.storageFraction", "0.3")
+    # Streaming optimizations
+    .config("spark.sql.streaming.stateStore.providerClass", 
+            "org.apache.spark.sql.execution.streaming.state.HDFSBackedStateStoreProvider")
+    .config("spark.sql.streaming.minBatchesToRetain", "2")
     .master("local[2]")
     .getOrCreate()
 )
@@ -89,7 +92,9 @@ kafka_df = (
     .format("kafka")
     .option("kafka.bootstrap.servers", KAFKA_BOOTSTRAP_SERVERS)
     .option("subscribe", KAFKA_TOPIC)
-    .option("startingOffsets", "latest") 
+    .option("startingOffsets", "earliest")
+    .option("maxOffsetsPerTrigger", "100")  # Rate limiting
+    .option("failOnDataLoss", "false")
     .load()
 )
 
@@ -107,15 +112,17 @@ df_with_duration = parsed_df.withColumn(
 )
 
 cleaned_df = df_with_duration.filter(
-    (col("trip_distance") > 0) &            # some are negative, can take abs if we really want to?
-    (col("trip_distance") < 1000) &         # RANDOMLY SET
+    (col("trip_distance") > 0) &
+    (col("trip_distance") < 100) &
     (col("fare_amount") >= 0) &
+    (col("fare_amount") < 500) &
     (col("passenger_count") > 0) &
-    (col("passenger_count") < 10) &         # max 9 ppl = 5 adults + 4 children on lap (but >5 is probably outlier anyway)
-    (col("trip_duration_sec") > 60) &       # <1m trips are often cancelled/errors
-    (col("trip_duration_sec") < 14400) &    # >4h trips are likely unrealistic
+    (col("passenger_count") < 10) &
+    (col("trip_duration_sec") > 60) &
+    (col("trip_duration_sec") < 14400) &
     (col("PULocationID").isNotNull()) &
-    (col("PULocationID") < 264)             # 264=Unknown, 265=N/A in NYC taxonomy
+    (col("PULocationID") < 264) &
+    (col("total_amount").isNotNull())
 )
 
 
@@ -160,14 +167,14 @@ enriched_df = watermarked.withColumn(
 
 enriched_df = enriched_df.withColumn(
     "distance_category",
-    when(col("trip_distance") < 2.0, lit("Short (<2m)"))
-    .when(col("trip_distance") < 10.0, lit("Medium (2-10m)"))
-    .otherwise(lit("Long (>10m)"))
+    when(col("trip_distance") < 2.0, lit("Short"))
+    .when(col("trip_distance") < 10.0, lit("Medium"))
+    .otherwise(lit("Long"))
 ).withColumn(
     "peak_category",
-    when((~col("is_weekend")) & (col("pickup_hour").between(16, 20)), lit("PM Rush"))
-    .when((~col("is_weekend")) & (col("pickup_hour").between(7, 10)) , lit("AM Rush"))
-    .otherwise(lit("Off-Peak"))
+    when((~col("is_weekend")) & (col("pickup_hour").between(16, 20)), lit("PM_Rush"))
+    .when((~col("is_weekend")) & (col("pickup_hour").between(7, 10)), lit("AM_Rush"))
+    .otherwise(lit("Off_Peak"))
 )
 
 
@@ -194,109 +201,94 @@ else:
     final_stream = enriched_df.withColumn("pickup_zone", lit("Unknown"))
 
 
-# ---------- Aggregations ----------
+# ---------- SINGLE Unified Aggregation ----------
+# Combine all metrics into ONE query to avoid state management conflicts
 
-# --- Query A: Demand & Revenue Dynamics ---
-demand_agg = final_stream \
+unified_agg = final_stream \
     .groupBy(
-        window(col("event_time"), "1 hour"),
+        window(col("event_time"), "5 minutes"),
         col("pickup_zone"),
-        col("peak_category")
+        col("peak_category"),
+        col("payment_type"),
+        col("distance_category")
     ) \
     .agg(
         count("*").alias("total_trips"),
         spark_sum("total_amount").alias("total_revenue"),
         avg("trip_distance").alias("avg_distance"),
+        avg("fare_amount").alias("avg_fare"),
         avg("fare_per_mile").alias("avg_fare_per_mile"),
-        avg("tip_ratio").alias("avg_tip_ratio")
-    ) \
-    .select(
-        col("window.start").alias("window_start"),
-        col("window.end").alias("window_end"),
-        "pickup_zone", "peak_category",
-        "total_trips", "total_revenue", "avg_distance", "avg_fare_per_mile", "avg_tip_ratio"
-    )
-
-# --- Query B: Operational Efficiency ---
-ops_agg = final_stream \
-    .groupBy(
-        window(col("event_time"), "30 minutes"),
-        col("pickup_zone")
-    ) \
-    .agg(
+        avg("tip_ratio").alias("avg_tip_ratio"),
         avg("speed_mph").alias("avg_speed"),
         avg("trip_duration_sec").alias("avg_duration_sec"),
         avg("passenger_count").alias("avg_occupancy")
     ) \
     .select(
         col("window.start").alias("window_start"),
+        col("window.end").alias("window_end"),
         "pickup_zone",
-        "avg_speed", "avg_duration_sec", "avg_occupancy"
-    )
-
-# --- Query C: Rider Behavior ---
-rider_agg = final_stream \
-    .groupBy(
-        window(col("event_time"), "1 hour"),
-        col("payment_type"),
-        col("distance_category")
-    ) \
-    .agg(
-        count("*").alias("total_trips"),
-        avg("tip_ratio").alias("avg_tip_ratio")
-        # Note: Percentiles are expensive in streaming but useful for behavior
-        # We comment it out for stability unless spark.sql.streaming.forceDeleteTempCheckpointLocation is handled
-        # expr("percentile_approx(tip_ratio, 0.5)").alias("median_tip_ratio")
-    ) \
-    .select(
-        col("window.start").alias("window_start"),
-        "payment_type", "distance_category",
-        "total_trips", "avg_tip_ratio"
+        "peak_category",
+        "payment_type",
+        "distance_category",
+        "total_trips",
+        "total_revenue",
+        "avg_distance",
+        "avg_fare",
+        "avg_fare_per_mile",
+        "avg_tip_ratio",
+        "avg_speed",
+        "avg_duration_sec",
+        "avg_occupancy"
     )
 
 
-# ---------- Sinks ----------
-def write_to_cassandra(batch_df, batch_id, table_name):
+# ---------- Sink to Cassandra ----------
+def write_to_cassandra(batch_df, batch_id):
+    """Write aggregated metrics to Cassandra unified table"""
     if batch_df.rdd.isEmpty():
+        logger.info(f"Batch {batch_id}: No data to write")
         return
     
-    logger.info(f"Writing batch {batch_id} to {table_name}")
-    (batch_df.write
-        .format("org.apache.spark.sql.cassandra")
-        .mode("append")
-        .options(table=table_name, keyspace=CASSANDRA_KEYSPACE)
-        .save())
+    try:
+        logger.info(f"Batch {batch_id}: Writing {batch_df.count()} records to taxi_analytics")
+        
+        batch_df.write \
+            .format("org.apache.spark.sql.cassandra") \
+            .mode("append") \
+            .options(table="taxi_analytics", keyspace=CASSANDRA_KEYSPACE) \
+            .save()
+        
+        logger.info(f"Batch {batch_id}: Successfully written to Cassandra")
+    except Exception as e:
+        logger.error(f"Batch {batch_id}: Error writing to Cassandra: {e}")
 
-print("Starting Demand Stream...")
-query_demand = (
-    demand_agg.writeStream
-    .trigger(processingTime='30 seconds')
+# ---------- Start Single Streaming Query ----------
+print("=" * 60)
+print("Starting NYC Taxi Analytics Streaming Pipeline")
+print("=" * 60)
+print(f"Kafka: {KAFKA_BOOTSTRAP_SERVERS}")
+print(f"Cassandra: {CASSANDRA_HOST}")
+print(f"Checkpoint: {CHECKPOINT_PATH}")
+print("=" * 60)
+
+query = (
+    unified_agg.writeStream
+    .trigger(processingTime='10 seconds')
     .outputMode("update")
-    .foreachBatch(lambda df, id: write_to_cassandra(df, id, "demand_dynamics"))
-    .option("checkpointLocation", CHECKPOINT_PATH_DICT['demand'])
+    .foreachBatch(write_to_cassandra)
+    .option("checkpointLocation", CHECKPOINT_PATH)
     .start()
 )
 
-print("Starting Ops Stream...")
-query_ops = (
-    ops_agg.writeStream
-    .trigger(processingTime='30 seconds')
-    .outputMode("update")
-    .foreachBatch(lambda df, id: write_to_cassandra(df, id, "operational_efficiency"))
-    .option("checkpointLocation", CHECKPOINT_PATH_DICT['ops'])
-    .start()
-)
-
-print("Starting Rider Stream...")
-query_rider = (
-    rider_agg.writeStream
-    .trigger(processingTime='30 seconds')
-    .outputMode("update")
-    .foreachBatch(lambda df, id: write_to_cassandra(df, id, "rider_behavior"))
-    .option("checkpointLocation", CHECKPOINT_PATH_DICT['rider'])
-    .start()
-)
+print("\n✓ Streaming query started successfully!")
+print("✓ Processing taxi trips every 10 seconds")
+print("✓ Press Ctrl+C to stop\n")
 
 # ---------- Execution ----------
-print("Streaming pipeline started. Press Ctrl+C to stop.")
-spark.streams.awaitAnyTermination()
+try:
+    query.awaitTermination()
+except KeyboardInterrupt:
+    print("\n\nStopping streaming pipeline...")
+    query.stop()
+    spark.stop()
+    print("Pipeline stopped successfully!")

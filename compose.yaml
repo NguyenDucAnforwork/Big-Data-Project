@@ -16,14 +16,21 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
-      # TỐI ƯU: Giới hạn Heap chỉ 400MB. Kafka bản chất dùng PageCache của OS nên không cần Heap lớn.
-      KAFKA_HEAP_OPTS: "-Xmx400M -Xms400M"
+      KAFKA_HEAP_OPTS: "-Xmx512M -Xms512M"
     deploy:
       resources:
         limits:
-          memory: 800M
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          memory: 512M
     volumes:
       - ./kafka/kafka_data:/tmp/kraft-combined-logs
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   cassandra:
     image: cassandra:4.1
@@ -33,13 +40,16 @@ services:
     environment:
       - CASSANDRA_CLUSTER_NAME=TaxiCluster
       - CASSANDRA_DC=datacenter1
-      # TỐI ƯU: Giới hạn Heap 800MB. Giảm NewSize để giảm tần suất GC.
-      - MAX_HEAP_SIZE=800M
-      - HEAP_NEWSIZE=200M
+      - MAX_HEAP_SIZE=1G
+      - HEAP_NEWSIZE=256M
+      - CASSANDRA_NUM_TOKENS=16
     deploy:
       resources:
         limits:
-          memory: 1.5G
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          memory: 1G
     volumes:
       - cassandra_data:/var/lib/cassandra
     healthcheck:
@@ -47,6 +57,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+      start_period: 60s
 
   grafana:
     image: grafana/grafana:latest
@@ -54,14 +65,22 @@ services:
     ports:
       - "3000:3000"
     environment:
+      - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=hadesarchitect-cassandra-datasource
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
     depends_on:
-      - cassandra
+      cassandra:
+        condition: service_healthy
 
-# TẮT KAFKA-UI ĐỂ TIẾT KIỆM TÀI NGUYÊN
 volumes:
   cassandra_data:
   grafana_data:
