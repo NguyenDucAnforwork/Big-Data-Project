@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS trip_aggregations_hourly (
 CREATE TABLE IF NOT EXISTS demand_dynamics (
     window_start TIMESTAMP,
     window_end TIMESTAMP,
-    pickup_zone INT,
+    pickup_zone TEXT,
     peak_category TEXT,
     total_trips BIGINT,
     total_revenue DOUBLE,
@@ -59,15 +59,14 @@ CREATE TABLE IF NOT EXISTS demand_dynamics (
 -- Query: Group by window (30 min), zone
 CREATE TABLE IF NOT EXISTS operational_efficiency (
     window_start TIMESTAMP,
-    pickup_zone INT,
+    pickup_zone TEXT,
     avg_speed DOUBLE,
     avg_duration_sec DOUBLE,
     avg_occupancy DOUBLE,
     PRIMARY KEY ((pickup_zone), window_start)
 ) WITH CLUSTERING ORDER BY (window_start DESC);
 
--- 3. Rider Behavior Table
--- Query: Group by window (hour), payment_type, distance_category
+-- Bảng 3: Rider
 CREATE TABLE IF NOT EXISTS rider_behavior (
     window_start TIMESTAMP,
     payment_type BIGINT,

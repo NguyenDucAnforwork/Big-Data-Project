@@ -14,7 +14,7 @@ TOPIC_NAME = "taxi-trips"
 # Kafka producer configuration (simple JSON producer, no Schema Registry)
 producer_config = {
     'bootstrap.servers': 'localhost:9092',
-    'enable.idempotence': True
+    'enable.idempotence': False
 }
 
 producer = Producer(producer_config)
@@ -44,9 +44,9 @@ for row in trips.to_dicts():
             key=key_bytes
         )
         producer.poll(0)
-        time.sleep(0.1)
+        time.sleep(1.0)
         sent_count += 1
-        if sent_count % 1000 == 0:
+        if sent_count % 100 == 0:
             print(f"Sent {sent_count} messages...")
             
     except BufferError:

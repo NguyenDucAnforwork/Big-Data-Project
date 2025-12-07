@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-broker-service
+  labels:
+    app: kafka-broker
+spec:
+  type: ClusterIP
+  ports:
+  - port: 9092
+    targetPort: 9092
+    name: kafka-external
+  - port: 29092
+    targetPort: 29092
+    name: kafka-internal
+  - port: 29093
+    targetPort: 29093
+    name: controller
+  selector:
+    app: kafka-broker
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-external-service
+  labels:
+    app: kafka-broker
+spec:
+  type: NodePort
+  ports:
+  - port: 9092
+    targetPort: 9092
+    nodePort: 30092
+    name: kafka
+  selector:
+    app: kafka-broker

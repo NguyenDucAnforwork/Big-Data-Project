@@ -1,0 +1,13 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: taxi-trips
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: taxi-kafka
+spec:
+  partitions: 3
+  replicas: 1
+  config:
+    retention.ms: 86400000  # 1 day
+    segment.bytes: 1073741824

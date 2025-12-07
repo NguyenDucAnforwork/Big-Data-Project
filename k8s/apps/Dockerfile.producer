@@ -1,0 +1,31 @@
+# Kafka Producer Dockerfile for Kubernetes
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements file
+COPY pyproject.toml uv.lock ./
+
+# Install uv and dependencies
+RUN pip install uv
+RUN uv sync --frozen
+
+# Copy application code
+COPY kafka/ ./kafka/
+COPY schemas/ ./schemas/
+COPY data/ ./data/
+
+# Set environment variables for Kubernetes
+ENV SCHEMA_REGISTRY_URL=http://schema-registry-service:8081
+ENV KAFKA_BOOTSTRAP_SERVERS=kafka-broker-service:29092
+
+# Create modified producer for Kubernetes
+COPY k8s/apps/producer-k8s.py ./kafka/producer-k8s.py
+
+CMD ["python", "kafka/producer-k8s.py"]

@@ -1,0 +1,36 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: big-data-kafka-project
+
+resources:
+  # Namespace
+  - namespace.yaml
+  
+  # Storage
+  - storage/persistent-volumes.yaml
+  
+  # Kafka
+  - kafka/kafka-deployment.yaml
+  - kafka/kafka-service.yaml
+  
+  # Schema Registry
+  - schema-registry/schema-registry-deployment.yaml
+  - schema-registry/schema-registry-service.yaml
+  
+  # Applications
+  - apps/consumer-deployment.yaml
+  - apps/producer-job.yaml
+
+images:
+  - name: kafka-producer
+    newTag: latest
+  - name: kafka-consumer
+    newTag: latest
+
+commonLabels:
+  project: big-data-kafka
+  environment: development
+
+namespace: big-data-kafka

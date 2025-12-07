@@ -76,8 +76,8 @@ spark = (
     .config("spark.cassandra.connection.port", "9042")
     .config("spark.sql.streaming.checkpointLocation", CHECKPOINT_ROOT)
     .config("spark.scheduler.mode", "FAIR") 
-    .config("spark.sql.shuffle.partitions", "4") 
-    .master("local[*]")
+    .config("spark.sql.shuffle.partitions", "2") 
+    .master("local[2]")
     .getOrCreate()
 )
 spark.sparkContext.setLogLevel("WARN")
@@ -270,6 +270,7 @@ def write_to_cassandra(batch_df, batch_id, table_name):
 print("Starting Demand Stream...")
 query_demand = (
     demand_agg.writeStream
+    .trigger(processingTime='30 seconds')
     .outputMode("update")
     .foreachBatch(lambda df, id: write_to_cassandra(df, id, "demand_dynamics"))
     .option("checkpointLocation", CHECKPOINT_PATH_DICT['demand'])
@@ -279,6 +280,7 @@ query_demand = (
 print("Starting Ops Stream...")
 query_ops = (
     ops_agg.writeStream
+    .trigger(processingTime='30 seconds')
     .outputMode("update")
     .foreachBatch(lambda df, id: write_to_cassandra(df, id, "operational_efficiency"))
     .option("checkpointLocation", CHECKPOINT_PATH_DICT['ops'])
@@ -288,6 +290,7 @@ query_ops = (
 print("Starting Rider Stream...")
 query_rider = (
     rider_agg.writeStream
+    .trigger(processingTime='30 seconds')
     .outputMode("update")
     .foreachBatch(lambda df, id: write_to_cassandra(df, id, "rider_behavior"))
     .option("checkpointLocation", CHECKPOINT_PATH_DICT['rider'])

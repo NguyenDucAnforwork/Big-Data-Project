@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kafka-producer
+  labels:
+    app: kafka-producer
+spec:
+  template:
+    metadata:
+      labels:
+        app: kafka-producer
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: producer
+        image: kafka-producer:latest
+        imagePullPolicy: Never
+        env:
+        - name: SCHEMA_REGISTRY_URL
+          value: "http://schema-registry-service:8081"
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          value: "kafka-broker-service:29092"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+      initContainers:
+      - name: wait-for-kafka
+        image: busybox:1.28
+        command: ['sh', '-c', 'until nslookup kafka-broker-service; do echo waiting for kafka; sleep 2; done;']
+      - name: wait-for-schema-registry
+        image: busybox:1.28
+        command: ['sh', '-c', 'until nslookup schema-registry-service; do echo waiting for schema-registry; sleep 2; done;']
