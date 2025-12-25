@@ -112,11 +112,31 @@ print_info "Kafka topic created ✓"
 wait_for_service "Cassandra" 9042
 sleep 10  # Extra time for Cassandra to be fully ready
 
+# Wait for HDFS Namenode
+wait_for_service "HDFS Namenode" 9870
+
 # Wait for Grafana
 wait_for_service "Grafana" 3000
 
 echo ""
 print_info "All Docker services are running ✓"
+echo ""
+
+# Initialize HDFS
+print_info "Initializing HDFS..."
+sleep 5  # Give HDFS time to start
+
+# Check if HDFS is ready
+if docker exec namenode hdfs dfsadmin -report 2>&1 | grep -q "Live datanodes"; then
+    print_info "HDFS is ready ✓"
+else
+    print_warn "HDFS may need a moment to fully initialize"
+fi
+
+# Create HDFS directories
+print_info "Creating HDFS directories..."
+docker exec namenode hdfs dfs -mkdir -p /raw/taxi_trips 2>/dev/null || print_warn "HDFS directories may already exist"
+print_info "HDFS ready ✓"
 echo ""
 
 # Step 3: Initialize Cassandra schema
@@ -191,11 +211,12 @@ echo "============================================================"
 echo ""
 echo "✓ Kafka:     Running on localhost:9092"
 echo "✓ Cassandra: Running on localhost:9042"
+echo "✓ HDFS:      Running on http://localhost:9870"
 echo "✓ Grafana:   Running on http://localhost:3000 (admin/admin)"
 echo "✓ Spark:     Running (PID: $SPARK_PID)"
 echo ""
 echo "============================================================"
-echo "  Next Steps"
+echo "  Next Steps - Real-Time Streaming"
 echo "============================================================"
 echo ""
 echo "1. Start the producer (in a new terminal):"
@@ -204,15 +225,32 @@ echo ""
 echo "2. Monitor Spark logs:"
 echo "   $ tail -f spark_streaming.log"
 echo ""
-echo "3. Query Cassandra:"
+echo "3. Query real-time data:"
 echo "   $ docker exec cassandra cqlsh -e \"USE taxi_streaming; SELECT COUNT(*) FROM taxi_analytics;\""
 echo ""
-echo "4. View Grafana dashboard:"
+echo "============================================================"
+echo "  Batch Processing (Lambda Architecture)"
+echo "============================================================"
+echo ""
+echo "1. Run batch pipeline to process historical data:"
+echo "   $ ./run-batch-pipeline.sh"
+echo ""
+echo "2. Query daily aggregations:"
+echo "   $ docker exec cassandra cqlsh -e \"USE taxi_streaming; SELECT * FROM daily_analytics LIMIT 10;\""
+echo ""
+echo "3. View HDFS Web UI:"
+echo "   Open http://localhost:9870"
+echo ""
+echo "============================================================"
+echo "  Dashboards & Monitoring"
+echo "============================================================"
+echo ""
+echo "1. View Grafana dashboard:"
 echo "   Open http://localhost:3000"
 echo ""
-echo "5. Stop the pipeline:"
+echo "2. Stop the pipeline:"
 echo "   $ ./stop-pipeline.sh"
 echo ""
 echo "============================================================"
-print_info "Pipeline is ready for demo! 🚀"
+print_info "Lambda Architecture Pipeline Ready! 🚀"
 echo "============================================================"
