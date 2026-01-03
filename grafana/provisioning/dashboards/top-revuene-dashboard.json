@@ -1,0 +1,421 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": 4,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "hadesarchitect-cassandra-datasource",
+        "uid": "cassandra-uid"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 2,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "currencyUSD"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 14,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "displayMode": "lcd",
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "top",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^Total$/",
+          "values": true
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "text"
+      },
+      "pluginVersion": "12.3.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "hadesarchitect-cassandra-datasource",
+            "uid": "cassandra-uid"
+          },
+          "queryType": "query",
+          "rawQuery": true,
+          "refId": "A",
+          "target": "SELECT zone, SUM(total_revenue) AS total_revenue_sum FROM analytics.zones_revenue_by_window WHERE time_bucket >= $__from AND time_bucket <= $__to GROUP BY zone ALLOW FILTERING"
+        }
+      ],
+      "title": "Top 10 Zones by Total Revenue",
+      "transformations": [
+        {
+          "id": "groupBy",
+          "options": {
+            "fields": {
+              "total_revenue_sum": {
+                "aggregations": [
+                  "lastNotNull"
+                ],
+                "operation": "aggregate"
+              },
+              "zone": {
+                "aggregations": [],
+                "operation": "groupby"
+              }
+            }
+          }
+        },
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "zone",
+            "mode": "outer"
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "total_revenue_sum (lastNotNull) 1": true,
+              "total_revenue_sum (lastNotNull) 10": true,
+              "total_revenue_sum (lastNotNull) 100": true,
+              "total_revenue_sum (lastNotNull) 101": true,
+              "total_revenue_sum (lastNotNull) 102": true,
+              "total_revenue_sum (lastNotNull) 103": true,
+              "total_revenue_sum (lastNotNull) 104": true,
+              "total_revenue_sum (lastNotNull) 105": true,
+              "total_revenue_sum (lastNotNull) 106": true,
+              "total_revenue_sum (lastNotNull) 107": true,
+              "total_revenue_sum (lastNotNull) 108": true,
+              "total_revenue_sum (lastNotNull) 109": true,
+              "total_revenue_sum (lastNotNull) 11": true,
+              "total_revenue_sum (lastNotNull) 110": true,
+              "total_revenue_sum (lastNotNull) 111": true,
+              "total_revenue_sum (lastNotNull) 112": true,
+              "total_revenue_sum (lastNotNull) 113": true,
+              "total_revenue_sum (lastNotNull) 114": true,
+              "total_revenue_sum (lastNotNull) 115": true,
+              "total_revenue_sum (lastNotNull) 116": true,
+              "total_revenue_sum (lastNotNull) 117": true,
+              "total_revenue_sum (lastNotNull) 118": true,
+              "total_revenue_sum (lastNotNull) 119": true,
+              "total_revenue_sum (lastNotNull) 12": true,
+              "total_revenue_sum (lastNotNull) 120": true,
+              "total_revenue_sum (lastNotNull) 121": true,
+              "total_revenue_sum (lastNotNull) 122": true,
+              "total_revenue_sum (lastNotNull) 123": true,
+              "total_revenue_sum (lastNotNull) 124": true,
+              "total_revenue_sum (lastNotNull) 125": true,
+              "total_revenue_sum (lastNotNull) 126": true,
+              "total_revenue_sum (lastNotNull) 127": true,
+              "total_revenue_sum (lastNotNull) 128": true,
+              "total_revenue_sum (lastNotNull) 129": true,
+              "total_revenue_sum (lastNotNull) 13": true,
+              "total_revenue_sum (lastNotNull) 130": true,
+              "total_revenue_sum (lastNotNull) 131": true,
+              "total_revenue_sum (lastNotNull) 132": true,
+              "total_revenue_sum (lastNotNull) 133": true,
+              "total_revenue_sum (lastNotNull) 134": true,
+              "total_revenue_sum (lastNotNull) 135": true,
+              "total_revenue_sum (lastNotNull) 136": true,
+              "total_revenue_sum (lastNotNull) 137": true,
+              "total_revenue_sum (lastNotNull) 138": true,
+              "total_revenue_sum (lastNotNull) 139": true,
+              "total_revenue_sum (lastNotNull) 14": true,
+              "total_revenue_sum (lastNotNull) 140": true,
+              "total_revenue_sum (lastNotNull) 141": true,
+              "total_revenue_sum (lastNotNull) 142": true,
+              "total_revenue_sum (lastNotNull) 143": true,
+              "total_revenue_sum (lastNotNull) 144": true,
+              "total_revenue_sum (lastNotNull) 145": true,
+              "total_revenue_sum (lastNotNull) 146": true,
+              "total_revenue_sum (lastNotNull) 147": true,
+              "total_revenue_sum (lastNotNull) 148": true,
+              "total_revenue_sum (lastNotNull) 149": true,
+              "total_revenue_sum (lastNotNull) 15": true,
+              "total_revenue_sum (lastNotNull) 150": true,
+              "total_revenue_sum (lastNotNull) 151": true,
+              "total_revenue_sum (lastNotNull) 152": true,
+              "total_revenue_sum (lastNotNull) 153": true,
+              "total_revenue_sum (lastNotNull) 154": true,
+              "total_revenue_sum (lastNotNull) 155": true,
+              "total_revenue_sum (lastNotNull) 156": true,
+              "total_revenue_sum (lastNotNull) 157": true,
+              "total_revenue_sum (lastNotNull) 158": true,
+              "total_revenue_sum (lastNotNull) 159": true,
+              "total_revenue_sum (lastNotNull) 16": true,
+              "total_revenue_sum (lastNotNull) 160": true,
+              "total_revenue_sum (lastNotNull) 161": true,
+              "total_revenue_sum (lastNotNull) 162": true,
+              "total_revenue_sum (lastNotNull) 163": true,
+              "total_revenue_sum (lastNotNull) 164": true,
+              "total_revenue_sum (lastNotNull) 165": true,
+              "total_revenue_sum (lastNotNull) 166": true,
+              "total_revenue_sum (lastNotNull) 167": true,
+              "total_revenue_sum (lastNotNull) 168": true,
+              "total_revenue_sum (lastNotNull) 169": true,
+              "total_revenue_sum (lastNotNull) 17": true,
+              "total_revenue_sum (lastNotNull) 170": true,
+              "total_revenue_sum (lastNotNull) 171": true,
+              "total_revenue_sum (lastNotNull) 172": true,
+              "total_revenue_sum (lastNotNull) 173": true,
+              "total_revenue_sum (lastNotNull) 174": true,
+              "total_revenue_sum (lastNotNull) 175": true,
+              "total_revenue_sum (lastNotNull) 176": true,
+              "total_revenue_sum (lastNotNull) 177": true,
+              "total_revenue_sum (lastNotNull) 178": true,
+              "total_revenue_sum (lastNotNull) 179": true,
+              "total_revenue_sum (lastNotNull) 18": true,
+              "total_revenue_sum (lastNotNull) 180": true,
+              "total_revenue_sum (lastNotNull) 181": true,
+              "total_revenue_sum (lastNotNull) 182": true,
+              "total_revenue_sum (lastNotNull) 183": true,
+              "total_revenue_sum (lastNotNull) 184": true,
+              "total_revenue_sum (lastNotNull) 185": true,
+              "total_revenue_sum (lastNotNull) 186": true,
+              "total_revenue_sum (lastNotNull) 187": true,
+              "total_revenue_sum (lastNotNull) 188": true,
+              "total_revenue_sum (lastNotNull) 189": true,
+              "total_revenue_sum (lastNotNull) 19": true,
+              "total_revenue_sum (lastNotNull) 190": true,
+              "total_revenue_sum (lastNotNull) 191": true,
+              "total_revenue_sum (lastNotNull) 192": true,
+              "total_revenue_sum (lastNotNull) 193": true,
+              "total_revenue_sum (lastNotNull) 194": true,
+              "total_revenue_sum (lastNotNull) 195": true,
+              "total_revenue_sum (lastNotNull) 196": true,
+              "total_revenue_sum (lastNotNull) 197": true,
+              "total_revenue_sum (lastNotNull) 198": true,
+              "total_revenue_sum (lastNotNull) 199": true,
+              "total_revenue_sum (lastNotNull) 2": true,
+              "total_revenue_sum (lastNotNull) 20": true,
+              "total_revenue_sum (lastNotNull) 200": true,
+              "total_revenue_sum (lastNotNull) 201": true,
+              "total_revenue_sum (lastNotNull) 202": true,
+              "total_revenue_sum (lastNotNull) 203": true,
+              "total_revenue_sum (lastNotNull) 204": true,
+              "total_revenue_sum (lastNotNull) 205": true,
+              "total_revenue_sum (lastNotNull) 206": true,
+              "total_revenue_sum (lastNotNull) 207": true,
+              "total_revenue_sum (lastNotNull) 208": true,
+              "total_revenue_sum (lastNotNull) 209": true,
+              "total_revenue_sum (lastNotNull) 21": true,
+              "total_revenue_sum (lastNotNull) 210": true,
+              "total_revenue_sum (lastNotNull) 211": true,
+              "total_revenue_sum (lastNotNull) 212": true,
+              "total_revenue_sum (lastNotNull) 213": true,
+              "total_revenue_sum (lastNotNull) 214": true,
+              "total_revenue_sum (lastNotNull) 215": true,
+              "total_revenue_sum (lastNotNull) 216": true,
+              "total_revenue_sum (lastNotNull) 217": true,
+              "total_revenue_sum (lastNotNull) 218": true,
+              "total_revenue_sum (lastNotNull) 219": true,
+              "total_revenue_sum (lastNotNull) 22": true,
+              "total_revenue_sum (lastNotNull) 220": true,
+              "total_revenue_sum (lastNotNull) 221": true,
+              "total_revenue_sum (lastNotNull) 222": true,
+              "total_revenue_sum (lastNotNull) 223": true,
+              "total_revenue_sum (lastNotNull) 224": true,
+              "total_revenue_sum (lastNotNull) 225": true,
+              "total_revenue_sum (lastNotNull) 226": true,
+              "total_revenue_sum (lastNotNull) 227": true,
+              "total_revenue_sum (lastNotNull) 228": true,
+              "total_revenue_sum (lastNotNull) 229": true,
+              "total_revenue_sum (lastNotNull) 23": true,
+              "total_revenue_sum (lastNotNull) 230": true,
+              "total_revenue_sum (lastNotNull) 231": true,
+              "total_revenue_sum (lastNotNull) 232": true,
+              "total_revenue_sum (lastNotNull) 233": true,
+              "total_revenue_sum (lastNotNull) 234": true,
+              "total_revenue_sum (lastNotNull) 235": true,
+              "total_revenue_sum (lastNotNull) 236": true,
+              "total_revenue_sum (lastNotNull) 237": true,
+              "total_revenue_sum (lastNotNull) 238": true,
+              "total_revenue_sum (lastNotNull) 239": true,
+              "total_revenue_sum (lastNotNull) 24": true,
+              "total_revenue_sum (lastNotNull) 240": true,
+              "total_revenue_sum (lastNotNull) 241": true,
+              "total_revenue_sum (lastNotNull) 242": true,
+              "total_revenue_sum (lastNotNull) 243": true,
+              "total_revenue_sum (lastNotNull) 244": true,
+              "total_revenue_sum (lastNotNull) 25": true,
+              "total_revenue_sum (lastNotNull) 26": true,
+              "total_revenue_sum (lastNotNull) 27": true,
+              "total_revenue_sum (lastNotNull) 28": true,
+              "total_revenue_sum (lastNotNull) 29": true,
+              "total_revenue_sum (lastNotNull) 3": true,
+              "total_revenue_sum (lastNotNull) 30": true,
+              "total_revenue_sum (lastNotNull) 31": true,
+              "total_revenue_sum (lastNotNull) 32": true,
+              "total_revenue_sum (lastNotNull) 33": true,
+              "total_revenue_sum (lastNotNull) 34": true,
+              "total_revenue_sum (lastNotNull) 35": true,
+              "total_revenue_sum (lastNotNull) 36": true,
+              "total_revenue_sum (lastNotNull) 37": true,
+              "total_revenue_sum (lastNotNull) 38": true,
+              "total_revenue_sum (lastNotNull) 39": true,
+              "total_revenue_sum (lastNotNull) 4": true,
+              "total_revenue_sum (lastNotNull) 40": true,
+              "total_revenue_sum (lastNotNull) 41": true,
+              "total_revenue_sum (lastNotNull) 42": true,
+              "total_revenue_sum (lastNotNull) 43": true,
+              "total_revenue_sum (lastNotNull) 44": true,
+              "total_revenue_sum (lastNotNull) 45": true,
+              "total_revenue_sum (lastNotNull) 46": true,
+              "total_revenue_sum (lastNotNull) 47": true,
+              "total_revenue_sum (lastNotNull) 48": true,
+              "total_revenue_sum (lastNotNull) 49": true,
+              "total_revenue_sum (lastNotNull) 5": true,
+              "total_revenue_sum (lastNotNull) 50": true,
+              "total_revenue_sum (lastNotNull) 51": true,
+              "total_revenue_sum (lastNotNull) 52": true,
+              "total_revenue_sum (lastNotNull) 53": true,
+              "total_revenue_sum (lastNotNull) 54": true,
+              "total_revenue_sum (lastNotNull) 55": true,
+              "total_revenue_sum (lastNotNull) 56": true,
+              "total_revenue_sum (lastNotNull) 57": true,
+              "total_revenue_sum (lastNotNull) 58": true,
+              "total_revenue_sum (lastNotNull) 59": true,
+              "total_revenue_sum (lastNotNull) 6": true,
+              "total_revenue_sum (lastNotNull) 60": true,
+              "total_revenue_sum (lastNotNull) 61": true,
+              "total_revenue_sum (lastNotNull) 62": true,
+              "total_revenue_sum (lastNotNull) 63": true,
+              "total_revenue_sum (lastNotNull) 64": true,
+              "total_revenue_sum (lastNotNull) 65": true,
+              "total_revenue_sum (lastNotNull) 66": true,
+              "total_revenue_sum (lastNotNull) 67": true,
+              "total_revenue_sum (lastNotNull) 68": true,
+              "total_revenue_sum (lastNotNull) 69": true,
+              "total_revenue_sum (lastNotNull) 7": true,
+              "total_revenue_sum (lastNotNull) 70": true,
+              "total_revenue_sum (lastNotNull) 71": true,
+              "total_revenue_sum (lastNotNull) 72": true,
+              "total_revenue_sum (lastNotNull) 73": true,
+              "total_revenue_sum (lastNotNull) 74": true,
+              "total_revenue_sum (lastNotNull) 75": true,
+              "total_revenue_sum (lastNotNull) 76": true,
+              "total_revenue_sum (lastNotNull) 77": true,
+              "total_revenue_sum (lastNotNull) 78": true,
+              "total_revenue_sum (lastNotNull) 79": true,
+              "total_revenue_sum (lastNotNull) 8": true,
+              "total_revenue_sum (lastNotNull) 80": true,
+              "total_revenue_sum (lastNotNull) 81": true,
+              "total_revenue_sum (lastNotNull) 82": true,
+              "total_revenue_sum (lastNotNull) 83": true,
+              "total_revenue_sum (lastNotNull) 84": true,
+              "total_revenue_sum (lastNotNull) 85": true,
+              "total_revenue_sum (lastNotNull) 86": true,
+              "total_revenue_sum (lastNotNull) 87": true,
+              "total_revenue_sum (lastNotNull) 88": true,
+              "total_revenue_sum (lastNotNull) 89": true,
+              "total_revenue_sum (lastNotNull) 9": true,
+              "total_revenue_sum (lastNotNull) 90": true,
+              "total_revenue_sum (lastNotNull) 91": true,
+              "total_revenue_sum (lastNotNull) 92": true,
+              "total_revenue_sum (lastNotNull) 93": true,
+              "total_revenue_sum (lastNotNull) 94": true,
+              "total_revenue_sum (lastNotNull) 95": true,
+              "total_revenue_sum (lastNotNull) 96": true,
+              "total_revenue_sum (lastNotNull) 97": true,
+              "total_revenue_sum (lastNotNull) 98": true,
+              "total_revenue_sum (lastNotNull) 99": true
+            },
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {
+              "zone": "Zone"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": true,
+                "field": "Total"
+              }
+            ]
+          }
+        },
+        {
+          "id": "limit",
+          "options": {
+            "limitField": "10"
+          }
+        }
+      ],
+      "type": "bargauge"
+    }
+  ],
+  "preload": false,
+  "refresh": "10s",
+  "schemaVersion": 42,
+  "tags": [
+    "taxi",
+    "revenue",
+    "zones"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "2025-08-08T00:00:00.000Z",
+    "to": "2025-08-08T23:59:59.000Z"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Taxi Analytics - Top Zones",
+  "uid": "top-zones-revenue",
+  "version": 3
+}

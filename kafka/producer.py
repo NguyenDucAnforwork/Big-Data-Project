@@ -215,5 +215,7 @@ def simulate_stream(args, data_path):
 
 if __name__ == "__main__":
     args = get_args()
+    print("Preparing data...")
     final_path = ensure_data_ready()
+    print(f"🚖 Taxi Data Simulator Starting...")
     simulate_stream(args, final_path)

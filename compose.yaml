@@ -48,8 +48,65 @@ services:
       - KAFKA_BOOTSTRAP_SERVERS=broker:29092
     volumes:
       - ./data:/data
-    command: sh -c "sleep 10 && python producer.py --speedup 3600.0"
+    # command: sh -c "sleep 10 && uv run python producer.py --speedup 3600.0"
+    command: sh -c "sleep 20 && uv run python producer.py --speedup 120.0"
     restart: no
+
+  # cassandra:
+  #   image: cassandra:4.1
+  #   container_name: cassandra
+  #   ports:
+  #     - "9042:9042"
+  #   environment:
+  #     - CASSANDRA_CLUSTER_NAME=TaxiCluster
+  #     - CASSANDRA_DC=datacenter1
+  #     - CASSANDRA_RACK=rack1
+  #   volumes:
+  #     - cassandra_data:/var/lib/cassandra
+  #     - ./cassandra:/docker-entrypoint-initdb.d
+  #   healthcheck:
+  #     test: ["CMD", "cqlsh", "-e", "describe keyspaces"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 10
+
+  # init-cassandra:
+  #   image: cassandra:4.1
+  #   container_name: init-cassandra-job
+  #   depends_on:
+  #     cassandra:
+  #       condition: service_healthy
+  #   volumes:
+  #     - ./cassandra:/cassandra
+  #   command: cqlsh cassandra -f /cassandra/init.cql
+
+  # spark:
+  #   build:
+  #     context: .
+  #     dockerfile: spark/Dockerfile
+  #   container_name: spark
+  #   depends_on:
+  #     cassandra:
+  #       condition: service_healthy  
+  #     init-cassandra:
+  #       condition: service_completed_successfully
+  #     broker:
+  #       condition: service_started
+  #   ports:
+  #     - "4040:4040"
+  #   volumes:
+  #     - ./spark:/opt/spark-apps
+  #     - spark-checkpoints:/tmp/spark_checkpoints
+  #   environment:
+  #     - SPARK_LOCAL_DIRS=/tmp
+  #     - KAFKA_BOOTSTRAP_SERVERS=broker:29092
+  #     - CASSANDRA_HOST=cassandra
+  #   command: >
+  #     /opt/spark/bin/spark-submit
+  #     --master local[*]
+  #     --jars /opt/spark-jars/spark-sql-kafka-0-10_2.12-3.5.1.jar,/opt/spark-jars/kafka-clients-3.4.1.jar,/opt/spark-jars/spark-token-provider-kafka-0-10_2.12-3.5.1.jar,/opt/spark-jars/commons-pool2-2.11.1.jar,/opt/spark-jars/spark-cassandra-connector-assembly_2.12-3.5.1.jar
+  #     --conf spark.sql.streaming.checkpointLocation=/tmp/spark_checkpoints
+  #     /opt/spark-apps/streaming.py
 
   cassandra:
     image: cassandra:4.1
@@ -60,6 +117,8 @@ services:
       - CASSANDRA_CLUSTER_NAME=TaxiCluster
       - CASSANDRA_DC=datacenter1
       - CASSANDRA_RACK=rack1
+      - MAX_HEAP_SIZE=512M
+      - HEAP_NEWSIZE=128M
     volumes:
       - cassandra_data:/var/lib/cassandra
       - ./cassandra:/docker-entrypoint-initdb.d
@@ -77,7 +136,7 @@ services:
         condition: service_healthy
     volumes:
       - ./cassandra:/cassandra
-    command: cqlsh cassandra -f /cassandra/init.cql
+    command: cqlsh cassandra -f /cassandra/init_unified.cql
 
   spark:
     build:
@@ -103,30 +162,32 @@ services:
     command: >
       /opt/spark/bin/spark-submit
       --master local[*]
+      --driver-memory 1g
+      --executor-memory 1g
       --jars /opt/spark-jars/spark-sql-kafka-0-10_2.12-3.5.1.jar,/opt/spark-jars/kafka-clients-3.4.1.jar,/opt/spark-jars/spark-token-provider-kafka-0-10_2.12-3.5.1.jar,/opt/spark-jars/commons-pool2-2.11.1.jar,/opt/spark-jars/spark-cassandra-connector-assembly_2.12-3.5.1.jar
       --conf spark.sql.streaming.checkpointLocation=/tmp/spark_checkpoints
-      /opt/spark-apps/streaming.py
+      /opt/spark-apps/streaming_unified.py
 
-  spark-batch:
-    build:
-      context: .
-      dockerfile: spark/Dockerfile
-    container_name: spark-batch
-    depends_on:
-      cassandra:
-        condition: service_healthy  
-      init-cassandra:
-        condition: service_completed_successfully
-      broker:
-        condition: service_started
-    volumes:
-      - ./spark:/opt/spark-apps
-      - spark-checkpoints:/tmp/spark_checkpoints
-    environment:
-      - SPARK_LOCAL_DIRS=/tmp
-      - KAFKA_BOOTSTRAP_SERVERS=broker:29092
-      - CASSANDRA_HOST=cassandra
-    command: python3 /opt/spark-apps/scheduler.py --speedup 3600.0
+  # spark-batch:
+  #   build:
+  #     context: .
+  #     dockerfile: spark/Dockerfile
+  #   container_name: spark-batch
+  #   depends_on:
+  #     cassandra:
+  #       condition: service_healthy  
+  #     init-cassandra:
+  #       condition: service_completed_successfully
+  #     broker:
+  #       condition: service_started
+  #   volumes:
+  #     - ./spark:/opt/spark-apps
+  #     - spark-checkpoints:/tmp/spark_checkpoints
+  #   environment:
+  #     - SPARK_LOCAL_DIRS=/tmp
+  #     - KAFKA_BOOTSTRAP_SERVERS=broker:29092
+  #     - CASSANDRA_HOST=cassandra
+  #   command: uv run python3 /opt/spark-apps/scheduler.py --speedup 3600.0
 
   grafana:
     image: grafana/grafana:latest

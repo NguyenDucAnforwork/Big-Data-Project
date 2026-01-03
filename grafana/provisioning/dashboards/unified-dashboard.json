@@ -1,0 +1,424 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "hadesarchitect-cassandra-datasource",
+        "uid": "cassandra-uid"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 2,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "currencyUSD"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "displayMode": "lcd",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^Total$/",
+          "values": true
+        },
+        "showUnfilled": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "hadesarchitect-cassandra-datasource",
+            "uid": "cassandra-uid"
+          },
+          "queryType": "query",
+          "rawQuery": true,
+          "refId": "A",
+          "target": "SELECT zone, SUM(total_revenue) AS total_revenue_sum FROM analytics.zones_revenue_by_window WHERE time_bucket >= $__from AND time_bucket <= $__to GROUP BY zone ALLOW FILTERING"
+        }
+      ],
+      "title": "Top 10 Zones by Total Revenue",
+      "transformations": [
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": true,
+                "field": "total_revenue_sum"
+              }
+            ]
+          }
+        },
+        {
+          "id": "limit",
+          "options": {
+            "limitField": "10"
+          }
+        }
+      ],
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "hadesarchitect-cassandra-datasource",
+        "uid": "cassandra-uid"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "axisPlacement": "left",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "scaleDistribution": {
+              "log": 2,
+              "type": "log"
+            }
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "colorByField": "Zone",
+        "orientation": "vertical",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "hadesarchitect-cassandra-datasource",
+            "uid": "cassandra-uid"
+          },
+          "queryType": "query",
+          "rawQuery": true,
+          "refId": "A",
+          "target": "SELECT zone, sum(trip_count) as total_trips FROM analytics.trip_demand_by_zone_5m WHERE time_bucket >= $__from AND time_bucket <= $__to GROUP BY zone ALLOW FILTERING"
+        }
+      ],
+      "title": "Total Trip Demand by Zone",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "total_trips": "Total Trips",
+              "zone": "Zone"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Zone"
+              }
+            ]
+          }
+        }
+      ],
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "hadesarchitect-cassandra-datasource",
+        "uid": "cassandra-uid"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-greens"
+          },
+          "custom": {
+            "gradientMode": "opacity",
+            "scaleDistribution": {
+              "log": 2,
+              "type": "log"
+            }
+          },
+          "unit": "currencyUSD"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 12,
+        "x": 0,
+        "y": 12
+      },
+      "id": 3,
+      "options": {
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "orientation": "horizontal",
+        "showValue": "always",
+        "stacking": "none"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "hadesarchitect-cassandra-datasource",
+            "uid": "cassandra-uid"
+          },
+          "queryType": "query",
+          "rawQuery": true,
+          "refId": "A",
+          "target": "SELECT borough, SUM(total_revenue) AS total_revenue_sum, SUM(total_distance) AS total_distance_sum FROM analytics.borough_fare_distance WHERE time_bucket >= $__from AND time_bucket <= $__to GROUP BY borough ALLOW FILTERING"
+        }
+      ],
+      "title": "Average Fare Per Mile by Borough",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "binary": {
+              "left": "total_revenue_sum",
+              "operator": "/",
+              "right": "total_distance_sum"
+            },
+            "mode": "binary",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "total_distance_sum": true,
+              "total_revenue_sum": true
+            },
+            "renameByName": {
+              "borough": "Borough",
+              "total_revenue_sum / total_distance_sum": "Avg Fare per Mile"
+            }
+          }
+        },
+        {
+          "id": "filterByValue",
+          "options": {
+            "filters": [
+              {
+                "config": {
+                  "id": "equal",
+                  "options": {
+                    "value": "Unknown"
+                  }
+                },
+                "fieldName": "Borough"
+              }
+            ],
+            "type": "exclude"
+          }
+        }
+      ],
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "hadesarchitect-cassandra-datasource",
+        "uid": "cassandra-uid"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "showPoints": "auto"
+          },
+          "decimals": 2,
+          "unit": "velocitymph"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max",
+            "min"
+          ],
+          "displayMode": "table",
+          "placement": "right"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "hadesarchitect-cassandra-datasource",
+            "uid": "cassandra-uid"
+          },
+          "queryType": "query",
+          "rawQuery": true,
+          "refId": "A",
+          "target": "SELECT borough, time_bucket, total_distance, total_duration_seconds FROM analytics.borough_avg_speed WHERE time_bucket >= $__from AND time_bucket <= $__to ALLOW FILTERING"
+        }
+      ],
+      "title": "Average Speed (mph) by Borough",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "Avg Speed / Borough",
+            "binary": {
+              "left": "total_distance",
+              "operator": "/",
+              "right": "total_duration_seconds"
+            },
+            "mode": "binary"
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "Avg. Speed (m/h)",
+            "binary": {
+              "left": "Avg Speed / Borough",
+              "operator": "*",
+              "right": 3600
+            },
+            "mode": "binary"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Avg Speed / Borough": true,
+              "total_distance": true,
+              "total_duration_seconds": true
+            },
+            "renameByName": {
+              "borough": "Borough"
+            }
+          }
+        },
+        {
+          "id": "filterByValue",
+          "options": {
+            "filters": [
+              {
+                "config": {
+                  "id": "equal",
+                  "options": {
+                    "value": "N/A"
+                  }
+                },
+                "fieldName": "Borough"
+              },
+              {
+                "config": {
+                  "id": "equal",
+                  "options": {
+                    "value": "Unknown"
+                  }
+                },
+                "fieldName": "Borough"
+              }
+            ],
+            "match": "any",
+            "type": "exclude"
+          }
+        },
+        {
+          "id": "partitionByValues",
+          "options": {
+            "fields": [
+              "Borough"
+            ]
+          }
+        }
+      ],
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 42,
+  "tags": [
+    "taxi",
+    "unified"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "2025-08-01T00:00:00.000Z",
+    "to": "2025-08-01T23:59:59.000Z"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "NYC Taxi - Unified Dashboard",
+  "uid": "unified-dashboard",
+  "version": 1
+}

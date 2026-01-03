@@ -54,6 +54,10 @@ taxi_schema = StructType([
 def get_spark_session(mode):
     builder = SparkSession.builder \
         .appName(f"NYC Taxi Pipeline [{mode.upper()}]") \
+        .config("spark.driver.memory", "256m") \
+        .config("spark.executor.memory", "256m") \
+        .config("spark.sql.shuffle.partitions", "50") \
+        .config("spark.streaming.kafka.maxRatePerPartition", "1000") \
         .config("spark.cassandra.connection.host", CASSANDRA_HOST) \
         .config("spark.cassandra.connection.port", "9042")
     
@@ -219,11 +223,11 @@ def main():
         # Stream Config: (Function, Interval, Table Suffix)
         configs = [
             (get_zone_agg, "30 minutes", "_30m"),
-            (get_zone_agg, "1 hour", "_1h"),
-            (get_global_agg, "30 minutes", "_30m"),
-            (get_global_agg, "1 hour", "_1h"),
-            (get_peak_agg, "30 minutes", "_30m"),
-            (get_payment_agg, "30 minutes", "_30m")
+            # (get_zone_agg, "1 hour", "_1h"),
+            # (get_global_agg, "30 minutes", "_30m"),
+            # (get_global_agg, "1 hour", "_1h"),
+            # (get_peak_agg, "30 minutes", "_30m"),
+            # (get_payment_agg, "30 minutes", "_30m")
         ]
     else:
         # Batch Config: Always 1 Day

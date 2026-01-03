@@ -1,0 +1,58 @@
+CREATE KEYSPACE IF NOT EXISTS analytics
+WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
+
+USE analytics;
+
+-- Dashboard #1: Top Zones by Revenue (from init_v3.cql)
+CREATE TABLE IF NOT EXISTS zones_revenue_by_window (
+    zone TEXT,
+    time_bucket TIMESTAMP,
+    total_revenue DOUBLE,
+    trip_count BIGINT,
+    last_updated TIMESTAMP,
+    PRIMARY KEY (zone, time_bucket)
+) WITH CLUSTERING ORDER BY (time_bucket DESC)
+AND default_time_to_live = 7776000;
+
+-- Dashboard #2: Trip Demand by Zone (from init_v2.cql)
+CREATE TABLE IF NOT EXISTS trip_demand_by_zone_5m (
+    zone TEXT,
+    time_bucket TIMESTAMP,
+    trip_count BIGINT,
+    PRIMARY KEY ((zone), time_bucket)
+) WITH CLUSTERING ORDER BY (time_bucket ASC)
+AND compaction = {
+    'class': 'TimeWindowCompactionStrategy',
+    'compaction_window_unit': 'MINUTES',
+    'compaction_window_size': '60'
+}
+AND default_time_to_live = 7776000;
+
+-- Dashboard #4: Average Fare Per Mile by Borough (from init_v4.cql)
+CREATE TABLE IF NOT EXISTS borough_fare_distance (
+    borough TEXT,
+    time_bucket TIMESTAMP,
+    total_revenue DOUBLE,
+    total_distance DOUBLE,
+    trip_count BIGINT,
+    last_updated TIMESTAMP,
+    PRIMARY KEY (borough, time_bucket)
+) WITH CLUSTERING ORDER BY (time_bucket DESC)
+AND compaction = {
+    'class': 'TimeWindowCompactionStrategy',
+    'compaction_window_unit': 'HOURS',
+    'compaction_window_size': '1'
+}
+AND default_time_to_live = 7776000;
+
+-- Dashboard #5: Average Speed by Borough (from init_v5.cql)
+CREATE TABLE IF NOT EXISTS borough_avg_speed (
+    borough TEXT,
+    time_bucket TIMESTAMP,
+    total_distance DOUBLE,
+    total_duration_seconds DOUBLE,
+    trip_count BIGINT,
+    last_updated TIMESTAMP,
+    PRIMARY KEY (borough, time_bucket)
+) WITH CLUSTERING ORDER BY (time_bucket DESC)
+AND default_time_to_live = 7776000;
