@@ -614,35 +614,35 @@
           "refId": "A",
           "queryType": "query",
           "rawQuery": true,
-          "target": "SELECT pickup_zone, total_revenue AS value, window_start AS time FROM taxi_streaming.zone_performance_30m WHERE pickup_zone = 'Upper East Side North' ALLOW FILTERING"
+          "target": "SELECT pickup_zone, total_revenue AS value, window_start AS time FROM taxi_streaming.zone_performance_30m WHERE pickup_zone = 'Upper East Side North' AND window_start >= $__timeFrom AND window_start <= $__timeTo"
         },
         {
           "datasource": { "type": "hadesarchitect-cassandra-datasource", "uid": "PE3297E400DFF12FE" },
           "refId": "B",
           "queryType": "query",
           "rawQuery": true,
-          "target": "SELECT pickup_zone, total_revenue AS value, window_start AS time FROM taxi_streaming.zone_performance_30m WHERE pickup_zone = 'Upper East Side South' ALLOW FILTERING"
+          "target": "SELECT pickup_zone, total_revenue AS value, window_start AS time FROM taxi_streaming.zone_performance_30m WHERE pickup_zone = 'Upper East Side South' AND window_start >= $__timeFrom AND window_start <= $__timeTo"
         },
         {
           "datasource": { "type": "hadesarchitect-cassandra-datasource", "uid": "PE3297E400DFF12FE" },
           "refId": "C",
           "queryType": "query",
           "rawQuery": true,
-          "target": "SELECT pickup_zone, total_revenue AS value, window_start AS time FROM taxi_streaming.zone_performance_30m WHERE pickup_zone = 'Midtown Center' ALLOW FILTERING"
+          "target": "SELECT pickup_zone, total_revenue AS value, window_start AS time FROM taxi_streaming.zone_performance_30m WHERE pickup_zone = 'Midtown Center' AND window_start >= $__timeFrom AND window_start <= $__timeTo"
         },
         {
           "datasource": { "type": "hadesarchitect-cassandra-datasource", "uid": "PE3297E400DFF12FE" },
           "refId": "D",
           "queryType": "query",
           "rawQuery": true,
-          "target": "SELECT pickup_zone, total_revenue AS value, window_start AS time FROM taxi_streaming.zone_performance_30m WHERE pickup_zone = 'Lincoln Square East' ALLOW FILTERING"
+          "target": "SELECT pickup_zone, total_revenue AS value, window_start AS time FROM taxi_streaming.zone_performance_30m WHERE pickup_zone = 'Lincoln Square East' AND window_start >= $__timeFrom AND window_start <= $__timeTo"
         },
         {
           "datasource": { "type": "hadesarchitect-cassandra-datasource", "uid": "PE3297E400DFF12FE" },
           "refId": "E",
           "queryType": "query",
           "rawQuery": true,
-          "target": "SELECT pickup_zone, total_revenue AS value, window_start AS time FROM taxi_streaming.zone_performance_30m WHERE pickup_zone = 'Times Sq/Theatre District' ALLOW FILTERING"
+          "target": "SELECT pickup_zone, total_revenue AS value, window_start AS time FROM taxi_streaming.zone_performance_30m WHERE pickup_zone = 'Times Sq/Theatre District' AND window_start >= $__timeFrom AND window_start <= $__timeTo"
         }
       ],
       "title": "Top Zones by Total Revenue (Accumulated)",
